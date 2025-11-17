@@ -13,7 +13,7 @@ public class ABB<K, V> implements IMapeamento<K, V>{
 	
 	/**
 	 * Método auxiliar para inicialização da árvore binária de busca.
-	 * 
+	 *
 	 * Este método define a raiz da árvore como {@code null} e seu tamanho como 0.
 	 * Utiliza o comparador fornecido para definir a organização dos elementos na árvore.
 	 * @param comparador o comparador para organizar os elementos da árvore.
@@ -116,7 +116,7 @@ public class ABB<K, V> implements IMapeamento<K, V>{
     		return raizArvore.getItem();
     	else if (comparacao < 0)
     		/// Se o item procurado for menor do que o item armazenado na raiz da árvore:
-            /// pesquise esse item na sub-árvore esquerda.    
+            /// pesquise esse item na sub-árvore esquerda.
     		return pesquisar(raizArvore.getEsquerda(), procurado);
     	else
     		/// Se o item procurado for maior do que o item armazenado na raiz da árvore:
@@ -129,16 +129,35 @@ public class ABB<K, V> implements IMapeamento<K, V>{
      * Método que encapsula a adição recursiva de itens à árvore, associando-o à chave fornecida.
      * @param chave a chave associada ao item que será inserido na árvore.
      * @param item o item que será inserido na árvore.
-     * 
+     *
      * @return o tamanho atualizado da árvore após a execução da operação de inserção.
      */
-    public int inserir(K chave, V item) {
-    	
-    	// TODO
-        return tamanho;
-    }
+	public int inserir(K chave, V item) {
+		raiz = inserir(raiz, chave, item);
+		tamanho++;
+		return tamanho;
+	}
 
-    @Override 
+	private No<K, V> inserir(No<K, V> raizArvore, K chave, V item) {
+		if (raizArvore == null) {
+			return new No<>(chave, item);
+		}
+
+		int comparacao = comparador.compare(chave, raizArvore.getChave());
+
+		if (comparacao < 0) {
+			raizArvore.setEsquerda(inserir(raizArvore.getEsquerda(), chave, item));
+		} else if (comparacao > 0) {
+			raizArvore.setDireita(inserir(raizArvore.getDireita(), chave, item));
+		} else {
+			raizArvore.setItem(item);
+		}
+
+		return raizArvore;
+	}
+
+
+    @Override
     public String toString(){
     	return percorrer();
     }
@@ -149,10 +168,18 @@ public class ABB<K, V> implements IMapeamento<K, V>{
     }
 
     public String caminhamentoEmOrdem() {
-    	
-    	// TODO
-    	return null;
-    }
+    return caminhamentoEmOrdem(raiz).trim();
+	}
+
+	private String caminhamentoEmOrdem(No<K, V> raizArvore) {
+		if (raizArvore == null) {
+			return "";
+		}
+		return caminhamentoEmOrdem(raizArvore.getEsquerda()) +
+			raizArvore.getItem() + " " +
+			caminhamentoEmOrdem(raizArvore.getDireita());
+	}
+
 
     @Override
     /**
@@ -161,10 +188,49 @@ public class ABB<K, V> implements IMapeamento<K, V>{
      * @return o valor associado ao item removido.
      */
     public V remover(K chave) {
-    	
-    	// TODO
-    	return null;
+    if (vazia()) {
+        throw new NoSuchElementException("A árvore está vazia!");
     }
+    V removido = pesquisar(chave);
+    raiz = remover(raiz, chave);
+    tamanho--;
+    return removido;
+	}
+
+	private No<K, V> remover(No<K, V> raizArvore, K chave) {
+		if (raizArvore == null) {
+			throw new NoSuchElementException("Chave não encontrada!");
+		}
+
+		int comparacao = comparador.compare(chave, raizArvore.getChave());
+
+		if (comparacao < 0) {
+			raizArvore.setEsquerda(remover(raizArvore.getEsquerda(), chave));
+		} else if (comparacao > 0) {
+			raizArvore.setDireita(remover(raizArvore.getDireita(), chave));
+		} else {
+			if (raizArvore.getEsquerda() == null && raizArvore.getDireita() == null) {
+				return null;
+			} else if (raizArvore.getEsquerda() == null) {
+				return raizArvore.getDireita();
+			} else if (raizArvore.getDireita() == null) {
+				return raizArvore.getEsquerda();
+			} else {
+				No<K, V> sucessor = encontrarMinimo(raizArvore.getDireita());
+				raizArvore.setChave(sucessor.getChave());
+				raizArvore.setItem(sucessor.getItem());
+				raizArvore.setDireita(remover(raizArvore.getDireita(), sucessor.getChave()));
+			}
+		}
+		return raizArvore;
+	}
+
+	private No<K, V> encontrarMinimo(No<K, V> raizArvore) {
+		while (raizArvore.getEsquerda() != null) {
+			raizArvore = raizArvore.getEsquerda();
+		}
+		return raizArvore;
+	}
 
 	@Override
 	public int tamanho() {
@@ -180,4 +246,13 @@ public class ABB<K, V> implements IMapeamento<K, V>{
 	public double getTempo() {
 		return (termino - inicio) / 1_000_000;
 	}
+
+	public long getInicio() {
+    return inicio;
+	}
+
+	public long getTermino() {
+		return termino;
+	}
+
 }

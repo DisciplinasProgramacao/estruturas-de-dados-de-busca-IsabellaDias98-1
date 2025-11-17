@@ -127,20 +127,49 @@ public class App {
     	
     }
     
-    /** Localiza um produto na árvore de produtos organizados por id, a partir do código de produto informado pelo usuário, e o retorna. 
+    /** Localiza um produto na árvore de produtos organizados por id, a partir do código de produto informado pelo usuário, e o retorna.
      *  Em caso de não encontrar o produto, retorna null */
     static Produto localizarProdutoID(ABB<Integer, Produto> produtosCadastrados) {
-        
-        // TODO
-    	return null;
+        System.out.print("Digite o ID do produto: ");
+        int id = Integer.parseInt(teclado.nextLine());
+
+        try {
+            Produto produto = produtosCadastrados.pesquisar(id);
+            long comparacoes = produtosCadastrados.getComparacoes();
+            long tempoExecucao = produtosCadastrados.getTermino() - produtosCadastrados.getInicio();
+
+            System.out.println("Produto encontrado: " + produto);
+            System.out.println("Comparações realizadas: " + comparacoes);
+            System.out.println("Tempo de execução (ns): " + tempoExecucao);
+
+            return produto;
+        } catch (NoSuchElementException e) {
+            System.out.println("Produto com ID " + id + " não encontrado.");
+            return null;
+        }
     }
     
-    /** Localiza um produto na árvore de produtos organizados por nome, a partir do nome de produto informado pelo usuário, e o retorna. 
+    /** Localiza um produto na árvore de produtos organizados por nome, a partir do nome de produto informado pelo usuário, e o retorna.
      *  A busca não é sensível ao caso. Em caso de não encontrar o produto, retorna null */
     static Produto localizarProdutoNome(ABB<String, Produto> produtosCadastrados) {
-        
-    	// TODO
-    	return null;
+        System.out.print("Digite o nome do produto: ");
+        String nome = teclado.nextLine();
+
+        try {
+            Produto produto = produtosCadastrados.pesquisar(nome);
+            long comparacoes = produtosCadastrados.getComparacoes();
+            long tempoExecucao = produtosCadastrados.getTermino() - produtosCadastrados.getInicio();
+
+
+            System.out.println("Produto encontrado: " + produto);
+            System.out.println("Comparações realizadas: " + comparacoes);
+            System.out.println("Tempo de execução (ns): " + tempoExecucao);
+
+            return produto;
+        } catch (NoSuchElementException e) {
+            System.out.println("Produto com nome \"" + nome + "\" não encontrado.");
+            return null;
+        }
     }
     
     private static void mostrarProduto(Produto produto) {
@@ -167,8 +196,11 @@ public class App {
 		teclado = new Scanner(System.in, Charset.forName("UTF-8"));
         nomeArquivoDados = "produtos.txt";
         
+        produtosCadastradosPorNome = new ABB<>();
+        produtosCadastradosPorId = new ABB<>();
+
         int opcao = -1;
-      
+
         do{
             opcao = menu();
             switch (opcao) {
@@ -179,8 +211,8 @@ public class App {
                 case 5 -> mostrarProduto(localizarProdutoID(produtosCadastradosPorId));
             }
             pausa();
-        }while(opcao != 0);       
+        }while(opcao != 0);
 
-        teclado.close();    
+        teclado.close();
     }
 }
