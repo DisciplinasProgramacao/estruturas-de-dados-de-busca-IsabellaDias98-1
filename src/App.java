@@ -20,11 +20,17 @@ public class App {
     /** Quantidade de produtos cadastrados atualmente na lista */
     static int quantosProdutos = 0;
 
+    static int quantosFornecedores = 0;
+
     static AVL<String, Produto> produtosBalanceadosPorNome;
     
     static AVL<Integer, Produto> produtosBalanceadosPorId;
     
     static TabelaHash<Produto, Lista<Pedido>> pedidosPorProduto;
+
+    static AVL<Integer, Fornecedor> fornecedoresPorDocumento;
+
+    static TabelaHash<Produto, Lista<Fornecedor>> fornecedoresPorProduto;
     
     static void limparTela() {
         System.out.print("\033[H\033[2J");
@@ -46,7 +52,6 @@ public class App {
     static <T extends Number> T lerOpcao(String mensagem, Class<T> classe) {
         
     	T valor;
-        
     	System.out.println(mensagem);
     	try {
             valor = classe.getConstructor(String.class).newInstance(teclado.nextLine());
@@ -65,11 +70,45 @@ public class App {
         cabecalho();
         System.out.println("1 - Procurar produto, por id");
         System.out.println("2 - Gravar, em arquivo, pedidos de um produto");
+        System.out.println("3 - Gerar relatório de um fornecedor (por documento)");
+        System.out.println("4 - Gravar, em arquivo, fornecedores de um produto");
         System.out.println("0 - Sair");
         System.out.print("Digite sua opção: ");
         return Integer.parseInt(teclado.nextLine());
     }
-    
+
+    public static <K> AVL<K, Fornecedor> lerFornecedores(String nomeArquivoDados, Function<Fornecedor, K> extratorDeChave) {
+        Scanner arquivo = null;
+        int numFornecedores;
+        String linha;
+        Fornecedor fornecedor;
+        AVL<K, Fornecedor> fornecedoresCadastrados;
+        K chave;
+
+        try {
+            arquivo = new Scanner(new File(nomeArquivoDados), Charset.forName("UTF-8"));
+
+            numFornecedores = Integer.parseInt(arquivo.nextLine());
+            fornecedoresCadastrados = new AVL<K, Fornecedor>();
+
+            for (int i = 0; i < numFornecedores; i++) {
+                linha = arquivo.nextLine();
+                fornecedor = new Fornecedor(linha);
+                chave = extratorDeChave.apply(fornecedor);
+                fornecedoresCadastrados.inserir(chave, fornecedor);
+            }
+            quantosFornecedores = numFornecedores;
+
+        } catch (Exception excecaoArquivo) {
+            fornecedoresCadastrados = null;
+        } finally {
+            if (arquivo != null) {
+                arquivo.close();
+            }
+        }
+        return fornecedoresCadastrados;
+    }
+
     /**
      * Lê os dados de um arquivo-texto e retorna uma árvore de produtos. Arquivo-texto no formato
      * N (quantidade de produtos) <br/>
@@ -213,6 +252,75 @@ public class App {
             System.out.println("Problemas para criar o arquivo " + nomeArquivo + ". Tente novamente");        	
         }
     }
+
+    static String relatorioDeFornecedor() {
+
+        Integer documentoDoFornecedor = lerOpcao("Digite o documento do fornecedor: ", Integer.class);
+
+        if (documentoDoFornecedor == null) {
+            return "ERRO.";
+        }
+
+        cabecalho();
+        System.out.println("Localizando fornecedor com documento: " + documentoDoFornecedor + "...");
+
+        try {
+            Fornecedor fornecedor = fornecedoresPorDocumento.pesquisar(documentoDoFornecedor);
+
+
+            System.out.println("Número de comparações realizadas: " + fornecedoresPorDocumento.getComparacoes());
+            System.out.println("Tempo de processamento da pesquisa: " + fornecedoresPorDocumento.getTempo() + " ms");
+
+            return "\n*** RELATÓRIO DO FORNECEDOR ***\n" + fornecedor.toString();
+
+        } catch (NoSuchElementException excecao) {
+
+            System.out.println("Número de comparações realizadas: " + fornecedoresPorDocumento.getComparacoes());
+            System.out.println("Tempo de processamento da pesquisa: " + fornecedoresPorDocumento.getTempo() + " ms");
+
+            return "ERRO: Fornecedor com documento " + documentoDoFornecedor + " não encontrado.";
+        }
+    }
+
+    static void fornecedoresDoProduto() {
+
+        Produto produto = localizarProdutoID(produtosBalanceadosPorId);
+
+        if (produto == null) {
+            System.out.println("Produto não encontrado.");
+            return;
+        }
+
+        Lista<Fornecedor> fornecedores;
+        String nomeArquivo = "FornecedoresDoProduto_" + produto.hashCode() + ".txt";
+
+        try {
+
+            fornecedores = fornecedoresPorProduto.pesquisar(produto);
+
+
+            try (FileWriter arquivoRelatorio = new FileWriter(nomeArquivo, Charset.forName("UTF-8"))) {
+
+                arquivoRelatorio.append("ID: " + produto.idProduto + "\n");
+                arquivoRelatorio.append("Descrição: " + produto.descricao + "\n");
+
+
+                if (fornecedores.vazia()) {
+                    arquivoRelatorio.append("Nenhum fornecedor cadastrado.\n");
+                } else {
+                    arquivoRelatorio.append(fornecedores.toString() + "\n");
+                }
+
+                System.out.println(" Relatório salvo");
+            } catch(IOException excecao) {
+                System.err.println(" ERRO." + nomeArquivo + ".");
+            }
+
+        } catch(NoSuchElementException excecao) {
+            System.out.println("Nenhuma lista foi encontrada.");
+
+        }
+    }
     
 	public static void main(String[] args) {
 		teclado = new Scanner(System.in, Charset.forName("UTF-8"));
@@ -228,8 +336,10 @@ public class App {
         do {
             opcao = menu();
             switch (opcao) {
-            	case 1 -> mostrarProduto(localizarProdutoID(produtosBalanceadosPorId));
-            	case 2 -> pedidosDoProduto(); 
+                case 1 -> mostrarProduto(localizarProdutoID(produtosBalanceadosPorId));
+                case 2 -> pedidosDoProduto();
+                case 3 -> System.out.println(relatorioDeFornecedor());
+                case 4 -> fornecedoresDoProduto();
             }
             pausa();
         } while(opcao != 0);       
